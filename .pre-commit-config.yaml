@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/cocogitto/cocogitto
+    rev: 6.5.1
+    hooks:
+      - id: cog-verify
+        stages: [commit-msg]
+      - id: cog-check
+        stages: [pre-push]
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: go-mod-tidy
+
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.7.0
+    hooks:
+      - id: golangci-lint

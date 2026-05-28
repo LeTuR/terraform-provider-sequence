@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/LeTuR/terraform-provider-sequence
 
 go 1.25.8
 

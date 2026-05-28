@@ -1,0 +1,9 @@
+tag_prefix = "v"
+ignore_merge_commits = true
+
+[commit_types]
+provider = { changelog_title = "Provider" }
+resource = { changelog_title = "Resource" }
+
+[changelog]
+authors = []

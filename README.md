@@ -1,64 +1,112 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# terraform-provider-sequence
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+A Terraform provider that generates **zero-padded sequential numbers**
+(`"001"`, `"002"`, …) gated by a trigger. Conceptually a relative of
+[`random_id`](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id),
+but producing stable, monotonic values instead of random ones.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+## Usage
 
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
+```hcl
+terraform {
+  required_providers {
+    sequence = {
+      source  = "LeTuR/sequence"
+      version = "~> 0.1"
+    }
+  }
+}
 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
+resource "sequence_number" "vm" {
+  start  = 1       # first value, default 1
+  width  = 3       # zero-padding width, default 3 → "001"
+  prefix = "vm-"   # optional
+  suffix = ""      # optional
 
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+  keepers = {
+    region = var.region
+  }
+}
 
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+output "vm_name" {
+  value = sequence_number.vm.formatted   # "vm-001"
+}
+```
+
+Changing any value in `keepers` increments `number` by 1 on the next
+`terraform apply`. The counter is per-resource and lives entirely in
+Terraform state — no external backend.
+
+## Attributes
+
+| Attribute   | Type        | Required | Description                                     |
+|-------------|-------------|----------|-------------------------------------------------|
+| `start`     | number      | no       | First value on create (default `1`)             |
+| `width`     | number      | no       | Zero-padding width (default `3`, `>= 0`)        |
+| `prefix`    | string      | no       | Prepended to the padded number                  |
+| `suffix`    | string      | no       | Appended to the padded number                   |
+| `keepers`   | map(string) | no       | Trigger — any value change increments `number`  |
+| `number`    | number      | computed | Current sequence value                          |
+| `formatted` | string      | computed | `prefix + zero-pad(number, width) + suffix`     |
+| `id`        | string      | computed | Same as `formatted`                             |
 
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24
+- [Go](https://golang.org/doc/install) >= 1.25 (for development only)
 
-## Building the Provider
+## Development
 
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
-
-```shell
-go install
+```bash
+go build .              # build the provider binary
+make generate           # regenerate docs/ from examples/
+make testacc            # run acceptance tests (TF_ACC=1 go test ./...)
 ```
 
-## Adding Dependencies
+### Local provider override
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+To try the provider against real Terraform without publishing, add a
+`dev_overrides` block to `~/.terraformrc`:
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
-
-```shell
-go get github.com/author/dependency
-go mod tidy
+```hcl
+provider_installation {
+  dev_overrides {
+    "LeTuR/sequence" = "/path/to/your/$GOPATH/bin"
+  }
+  direct {}
+}
 ```
 
-Then commit the changes to `go.mod` and `go.sum`.
+Then `terraform plan` in `examples/resources/sequence_number/` will use
+your local build.
 
-## Using the Provider
+## Release process
 
-Fill this in for each provider
+Releases are **fully automated**. Push a conventional commit (`feat:`,
+`fix:`, `perf:`) to `main`, and the `Release` workflow:
 
-## Developing the Provider
+1. Runs `cog bump --auto --dry-run` to compute the next semver.
+2. Creates a lightweight `vX.Y.Z` git tag (no commit on `main`).
+3. Runs GoReleaser to build, sign, and publish a GitHub Release with
+   binaries for `linux`, `darwin`, `windows`, and `freebsd` × `amd64`,
+   `arm64`, `arm`, `386`.
+4. The Terraform Registry picks up the new tag via webhook.
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
+### One-time setup
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+1. Generate a GPG signing key:
+   ```bash
+   gpg --full-generate-key   # RSA 4096
+   gpg --armor --export-secret-keys <key-id>   # for GitHub secret
+   gpg --armor --export <key-id>               # for Terraform Registry
+   ```
+2. Add GitHub repo secrets:
+   - `GPG_PRIVATE_KEY` — armored private key
+   - `PASSPHRASE` — key passphrase
+3. Add the public key to <https://registry.terraform.io> under
+   **User Settings → Signing Keys**, then **Publish → Provider** and
+   select `LeTuR/terraform-provider-sequence`.
 
-To generate or update documentation, run `make generate`.
+## License
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-```shell
-make testacc
-```
+[MIT](LICENSE)
