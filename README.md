@@ -63,6 +63,21 @@ make generate           # regenerate docs/ from examples/
 make testacc            # run acceptance tests (TF_ACC=1 go test ./...)
 ```
 
+### Pre-commit hooks
+
+Install hooks once per clone:
+
+```bash
+prek install            # preferred (Rust, fast) — or:
+pre-commit install      # Python fallback
+```
+
+On every commit: `gofmt`, `go vet`, `go mod tidy`, `golangci-lint`,
+`go build`. On the commit message: `cog verify` (conventional commits).
+On push: `cog check` (validates the full history). The same hooks run in
+CI via `.github/workflows/lint.yml`, so anything caught locally is
+caught upstream too.
+
 ### Local provider override
 
 To try the provider against real Terraform without publishing, add a

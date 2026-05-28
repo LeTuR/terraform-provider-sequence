@@ -4,6 +4,10 @@
   "labels": ["dependencies"],
   "automerge": true,
   "platformAutomerge": true,
+  "rebaseWhen": "behind-base-branch",
+  "rebaseLabel": "rebase",
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
   "semanticCommitType": "fix",
   "semanticCommitScope": "deps",
   "packageRules": [

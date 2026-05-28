@@ -1,20 +1,58 @@
+default_stages: [pre-commit]
+default_install_hook_types:
+  - commit-msg
+  - pre-commit
+  - pre-push
+
 repos:
-  - repo: https://github.com/cocogitto/cocogitto
-    rev: 6.5.1
+  - repo: local
     hooks:
-      - id: cog-verify
+      - id: cocogitto-verify
+        name: Verify conventional commit message
+        entry: cog verify
+        language: system
         stages: [commit-msg]
-      - id: cog-check
-        stages: [pre-push]
+        args: ["--file"]
 
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-fmt
+      - id: gofmt
+        name: gofmt
+        entry: gofmt -l -w
+        language: system
+        types: [go]
+        pass_filenames: true
+
       - id: go-vet
-      - id: go-mod-tidy
+        name: go vet
+        entry: go vet ./...
+        language: system
+        types: [go]
+        pass_filenames: false
 
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v2.7.0
-    hooks:
+      - id: go-mod-tidy
+        name: go mod tidy
+        entry: bash -c 'go mod tidy && git diff --exit-code go.mod go.sum'
+        language: system
+        files: '(\.go|go\.mod|go\.sum)$'
+        pass_filenames: false
+
       - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run --config .golangci.yml
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-build
+        name: go build
+        entry: go build ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: cocogitto-check
+        name: Check commit history
+        entry: cog check
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true

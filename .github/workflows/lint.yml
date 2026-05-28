@@ -1,0 +1,49 @@
+name: Lint
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'README.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0  # cog check needs full history
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install cocogitto
+        uses: cocogitto/cocogitto-action@52d0023b4396897f1815648e553db2ab8d782f3a # main
+        with:
+          install-only: true
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: latest
+          install-mode: binary
+          args: --version  # just install; hooks invoke it
+
+      - name: Install prek
+        run: pipx install prek
+
+      - name: Run pre-commit (pre-commit stage)
+        run: prek run --all-files --show-diff-on-failure --color always
+
+      - name: Run pre-commit (pre-push stage)
+        run: prek run --hook-stage pre-push --all-files --color always
