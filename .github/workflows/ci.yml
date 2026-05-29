@@ -95,3 +95,22 @@ jobs:
           TF_ACC: "1"
         run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
+
+  all-checks:
+    name: All Checks
+    if: always()
+    needs:
+      - lint
+      - build
+      - generate
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all checks passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]] || \
+             [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more checks failed or were cancelled"
+            exit 1
+          fi
+          echo "All checks passed"
