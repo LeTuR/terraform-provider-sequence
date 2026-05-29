@@ -49,9 +49,16 @@ repos:
         types: [go]
         pass_filenames: false
 
+      - id: tfplugindocs
+        name: generate provider docs
+        entry: bash -c 'make generate && git diff --exit-code docs/'
+        language: system
+        files: '(\.go|examples/.*\.tf)$'
+        pass_filenames: false
+
       - id: cocogitto-check
         name: Check commit history
-        entry: cog check
+        entry: cog check --from-latest-tag
         language: system
         stages: [pre-push]
         pass_filenames: false
